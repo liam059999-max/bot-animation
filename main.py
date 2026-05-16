@@ -197,6 +197,10 @@ class MyClient(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
+        # Enregistre la vue persistante pour que les boutons fonctionnent
+        # même après un redémarrage du bot.
+        self.add_view(RapportView())
+
         guild = discord.Object(id=GUILD_ID)
         await self.tree.sync(guild=guild)
         print("✅ Commandes synchronisées")
@@ -282,29 +286,36 @@ class RapportView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Début event", emoji="🟢", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Début event", emoji="🟢", style=discord.ButtonStyle.success, custom_id="rapport_debut_event")
     async def debut_event(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(
             RapportModal("Début d'évènement", "🟢", discord.Color.green(), "debut_event")
         )
 
-    @discord.ui.button(label="Fin event", emoji="🔴", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="Fin event", emoji="🔴", style=discord.ButtonStyle.danger, custom_id="rapport_fin_event")
     async def fin_event(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(
             RapportModal("Fin event", "🔴", discord.Color.red(), "fin_event")
         )
 
-    @discord.ui.button(label="Incident", emoji="⚠️", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Incident", emoji="⚠️", style=discord.ButtonStyle.secondary, custom_id="rapport_incident")
     async def incident(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(
             RapportModal("Incident", "⚠️", discord.Color.orange(), "incident")
         )
 
-    @discord.ui.button(label="Autre", emoji="📝", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Autre", emoji="📝", style=discord.ButtonStyle.secondary, custom_id="rapport_autre")
     async def autre(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(
             RapportModal("Autre", "📝", discord.Color.blurple(), "autre")
         )
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item):
+        print(f"❌ Erreur bouton rapport: {error}")
+        if interaction.response.is_done():
+            await interaction.followup.send("❌ Une erreur est survenue avec ce bouton.", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Une erreur est survenue avec ce bouton.", ephemeral=True)
 
 
 @client.tree.command(
